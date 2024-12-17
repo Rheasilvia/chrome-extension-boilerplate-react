@@ -6,6 +6,8 @@ var webpack = require('webpack'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin');
 var { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 
@@ -31,7 +33,7 @@ if (fileSystem.existsSync(secretsPath)) {
   alias['secrets'] = secretsPath;
 }
 
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const entryPoints = ['newtab', 'options', 'popup', 'background', 'contentScript', 'devtools', 'panel'];
 
 var options = {
   mode: process.env.NODE_ENV || 'development',
@@ -61,7 +63,7 @@ var options = {
         // in the `src` directory
         use: [
           {
-            loader: 'style-loader',
+            loader: MiniCssExtractPlugin.loader 
           },
           {
             loader: 'css-loader',
@@ -124,6 +126,10 @@ var options = {
       .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
   },
   plugins: [
+    new MiniCssExtractPlugin({
+      filename: '[name].css',
+      chunkFilename: '[id].css'
+    }),
     new CleanWebpackPlugin({ verbose: false }),
     new webpack.ProgressPlugin(),
     // expose and write the allowed env vars on the compiled bundle
@@ -208,19 +214,82 @@ var options = {
   infrastructureLogging: {
     level: 'info',
   },
+  cache: {
+    type: 'filesystem',
+  },
 };
 
 if (env.NODE_ENV === 'development') {
   options.devtool = 'cheap-module-source-map';
+  options.optimization = {
+    ...options.optimization,
+    moduleIds: 'named',
+    chunkIds: 'named',
+  };
 } else {
   options.optimization = {
     minimize: true,
     minimizer: [
       new TerserPlugin({
         extractComments: false,
+        terserOptions: {
+          format: {
+            comments: false,
+          },
+          compress: {
+            drop_console: true,
+            drop_debugger: true,
+          },
+        },
       }),
+      new CssMinimizerPlugin(),
     ],
+    splitChunks: {
+      chunks: (chunk) => !entryPoints.includes(chunk.name),
+      minSize: 20000,
+      maxSize: 244000,
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: (chunk) => !entryPoints.includes(chunk.name),
+        },
+        common: {
+          name: 'common',
+          minChunks: 2,
+          chunks: (chunk) => !entryPoints.includes(chunk.name),
+          priority: -20,
+          reuseExistingChunk: true,
+        },
+      },
+    },
   };
+
+  
+  // Add tree shaking
+  options.optimization.usedExports = true;
+
+  // Add module concatenation
+  options.optimization.concatenateModules = true;
+
+  options.plugins.push(
+    new webpack.IgnorePlugin({
+      resourceRegExp: /^\.\/locale$/,
+      contextRegExp: /moment$/,
+    })
+  );
+
+  options.module.rules.push({
+    test: /\.js$/,
+    parser: {
+      javascript: {
+        dynamicImport: true,
+        commonjsMagicComments: false,
+        eval: false,
+        function: false,
+      },
+    },
+  });
 }
 
 module.exports = options;
