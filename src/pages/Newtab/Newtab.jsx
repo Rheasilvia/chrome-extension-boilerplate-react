@@ -4,6 +4,8 @@ import './Newtab.css';
 import './Newtab.scss';
 
 const Newtab = () => {
+  const env = process.env.ENV;
+  console.log('env:', env);
   return (
     <div className="App">
       <header className="App-header">
@@ -20,6 +22,7 @@ const Newtab = () => {
           Learn React!
         </a>
         <h6>The color of this paragraph is defined using SASS.</h6>
+        <p>Current Env:{env}</p>
       </header>
     </div>
   );

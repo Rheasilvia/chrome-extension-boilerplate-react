@@ -2,6 +2,7 @@ var webpack = require('webpack'),
   path = require('path'),
   fileSystem = require('fs-extra'),
   env = require('./utils/env'),
+  dotenv = require('dotenv'),
   CopyWebpackPlugin = require('copy-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin');
@@ -10,6 +11,14 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 
 const ASSET_PATH = process.env.ASSET_PATH || '/';
+const envFile = `./env/.${process.env.NODE_ENV || 'development'}`;
+const envConfig = dotenv.config({
+  path: envFile,
+}).parsed;
+const envKeys = Object.keys(envConfig).reduce((prev, next) => {
+  prev[`process.env.${next}`] = JSON.stringify(envConfig[next]);
+  return prev;
+}, {});
 
 var alias = {};
 
@@ -134,6 +143,7 @@ var options = {
     new webpack.ProgressPlugin(),
     // expose and write the allowed env vars on the compiled bundle
     new webpack.EnvironmentPlugin(['NODE_ENV']),
+    new webpack.DefinePlugin(envKeys),
     new CopyWebpackPlugin({
       patterns: [
         {
