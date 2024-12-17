@@ -6,8 +6,6 @@ var webpack = require('webpack'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin');
 var { CleanWebpackPlugin } = require('clean-webpack-plugin');
-var ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-var ReactRefreshTypeScript = require('react-refresh-typescript');
 
 const ASSET_PATH = process.env.ASSET_PATH || '/';
 
@@ -92,33 +90,26 @@ var options = {
       },
       {
         test: /\.(ts|tsx)$/,
-        exclude: /node_modules/,
         use: [
+          'thread-loader',
           {
-            loader: require.resolve('ts-loader'),
+            loader: 'ts-loader',
             options: {
-              getCustomTransformers: () => ({
-                before: [isDevelopment && ReactRefreshTypeScript()].filter(
-                  Boolean
-                ),
-              }),
-              transpileOnly: isDevelopment,
+              transpileOnly: true,
+              happyPackMode: true,
             },
           },
         ],
+        exclude: /node_modules/,
       },
       {
         test: /\.(js|jsx)$/,
         use: [
+          'thread-loader',
           {
-            loader: 'source-map-loader',
-          },
-          {
-            loader: require.resolve('babel-loader'),
+            loader: 'babel-loader',
             options: {
-              plugins: [
-                isDevelopment && require.resolve('react-refresh/babel'),
-              ].filter(Boolean),
+              cacheDirectory: true,
             },
           },
         ],
@@ -133,7 +124,6 @@ var options = {
       .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
   },
   plugins: [
-    isDevelopment && new ReactRefreshWebpackPlugin(),
     new CleanWebpackPlugin({ verbose: false }),
     new webpack.ProgressPlugin(),
     // expose and write the allowed env vars on the compiled bundle
