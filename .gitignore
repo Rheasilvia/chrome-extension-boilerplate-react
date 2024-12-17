@@ -22,3 +22,7 @@
 
 # secrets
 secrets.*.js
+
+# ignore locks
+package-lock.json
+pnpm-lock.yaml

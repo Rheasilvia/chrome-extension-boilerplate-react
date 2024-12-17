@@ -21,19 +21,18 @@ for (var entryName in config.entry) {
   }
 }
 
+config.plugins = [new webpack.HotModuleReplacementPlugin()].concat(
+  config.plugins || []
+);
+
 delete config.chromeExtensionBoilerplate;
 
 var compiler = webpack(config);
 
 var server = new WebpackDevServer(
   {
-    https: false,
-    hot: true,
-    liveReload: false,
-    client: {
-      webSocketTransport: 'sockjs',
-    },
-    webSocketServer: 'sockjs',
+    hot: false,
+    client: false,
     host: 'localhost',
     port: env.PORT,
     static: {
@@ -50,6 +49,10 @@ var server = new WebpackDevServer(
   },
   compiler
 );
+
+if (process.env.NODE_ENV === 'development' && module.hot) {
+  module.hot.accept();
+}
 
 (async () => {
   await server.start();
